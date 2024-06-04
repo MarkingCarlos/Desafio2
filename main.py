@@ -37,7 +37,7 @@ def OtsuWater(img):
     markers = cv2.watershed(img, markers)
     img[markers == -1] = [255, 0, 0]
     
-    return img, otsu_thresh, markers, gray
+    return markers, gray
 
 def GLCM(gray):
     # Normalizar a imagem para os níveis de cinza entre 0 e 255
@@ -117,7 +117,7 @@ def box_count(img, k):
     # Count non-empty (0) and non-full boxes
     return len(np.where((S > 0) & (S < k*k))[0])
 
-def plot_feature_spaces(object_features, background_features):
+def plot_feature_spaces(Normal, Media, Alta):
     # Nomes das características
     feature_names = ["Segundo Momento Angular", "Entropia", "Correlação", "Contraste", "Homogeneidade", "Dimensão Fractal (DF)"]
     
@@ -131,13 +131,15 @@ def plot_feature_spaces(object_features, background_features):
     for i in range(num_features):
         for j in range(num_features):
             if i != j:
-                axs[i, j].scatter(object_features[:, j], object_features[:, i], color='r', label='Objeto', alpha=0.5)
-                axs[i, j].scatter(background_features[:, j], background_features[:, i], color='b', label='Fundo', alpha=0.5)
+                axs[i, j].scatter(Normal[:, j], Normal[:, i], color='b', label='Normal', alpha=0.5)
+                axs[i, j].scatter(Media[:, j], Media[:, i], color='g', label='Média', alpha=0.5)
+                axs[i, j].scatter(Alta[:, j], Alta[:, i], color='r', label='Alta', alpha=0.5)
                 axs[i, j].set_xlabel(feature_names[j])
                 axs[i, j].set_ylabel(feature_names[i])
             else:
-                axs[i, j].hist(object_features[:, i], color='r', alpha=0.5, label='Objeto')
-                axs[i, j].hist(background_features[:, i], color='b', alpha=0.5, label='Fundo')
+                axs[i, j].hist(Normal[:, i], color='b', alpha=0.5, label='Normal')
+                axs[i, j].hist(Media[:, i], color='g', alpha=0.5, label='Média')
+                axs[i, j].hist(Alta[:, i], color='r', alpha=0.5, label='Alta')
                 axs[i, j].set_xlabel(feature_names[i])
                 axs[i, j].set_ylabel('Frequência')
     
@@ -163,6 +165,7 @@ def main(img):
     background_features = np.array(background_feature_vector).reshape(1, -1)
 
     # Exibindo os resultados
+    '''
     fig, axs = plt.subplots(1, 4, figsize=(20, 5))
     axs[0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     axs[0].set_title('Imagem Original')
@@ -177,7 +180,7 @@ def main(img):
     axs[2].axis('off')
 
     plt.show()
-
+    '''
     # Imprimir os vetores de características
     print("Vetor de Características do Objeto:")
     print("Segundo Momento Angular:", object_feature_vector[0])
@@ -186,7 +189,7 @@ def main(img):
     print("Contraste:", object_feature_vector[3])
     print("Homogeneidade:", object_feature_vector[4])
     print("Dimensão Fractal (DF):", object_feature_vector[5])
-
+    plot_feature_spaces(object_features, background_features)
 '''
     print("\nVetor de Características do Fundo:")
     print("Segundo Momento Angular:", background_feature_vector[0])
@@ -196,20 +199,41 @@ def main(img):
     print("Homogeneidade:", background_feature_vector[4])
 '''
     # Plotando os espaços de características
-    # plot_feature_spaces(object_features, background_features)
+    
+def mainBox(normal,media, alta):
 
+    markers, gray = OtsuWater(normal)
+    object_mask = (markers == 1).astype(np.uint8)
+    object_feature_vector = compute_feature_vector(gray, object_mask)
+    Normalobject_features = np.array(object_feature_vector).reshape(1, -1)
+
+    markers, gray = OtsuWater(media)
+    object_mask = (markers == 1).astype(np.uint8)
+    object_feature_vector = compute_feature_vector(gray, object_mask)
+    Mediaobject_features = np.array(object_feature_vector).reshape(1, -1)
+
+    markers, gray = OtsuWater(alta)
+    object_mask = (markers == 1).astype(np.uint8)
+    object_feature_vector = compute_feature_vector(gray, object_mask)
+    altaobject_features = np.array(object_feature_vector).reshape(1, -1)
+
+    # Exibindo os resultados
+    plot_feature_spaces(Normalobject_features, Mediaobject_features, altaobject_features)
+
+   
 
 if __name__ == "__main__":
     image_path = "Normal.jpg"
-    img = cv2.imread(image_path)
+    Normalimg = cv2.imread(image_path)
     print("Imagem Normal:")
-    main(img)
+   # main(img)
     image_path = "44h.jpg"
-    img = cv2.imread(image_path)
+    Mediaimg = cv2.imread(image_path)
     print("Imagem 44h:")
-    main(img)
+   # main(img)
     image_path = "96h.jpg"
-    img = cv2.imread(image_path)
+    Altaimg = cv2.imread(image_path)
     print("Imagem 96h:")
-    main(img)
+    #main(img)
+    mainBox(Normalimg,Mediaimg,Altaimg)
    
