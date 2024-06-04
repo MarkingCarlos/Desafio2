@@ -37,10 +37,43 @@ def OtsuWater(img):
     markers = cv2.watershed(img, markers)
     img[markers == -1] = [255, 0, 0]
     
+    return img, otsu_thresh, markers, gray
+
+def OtsuWaterBox(img):
+    # Converte a imagem para escala de cinza
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # limiarização de Otsu
+    _, otsu_thresh = cv2.threshold(gray, 225, 255, cv2.THRESH_BINARY)
+    
+    # Remove o ruído
+    kernel = np.ones((3, 3), np.uint8)
+    opening = cv2.morphologyEx(otsu_thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+    
+    # Determina o fundo certo
+    sure_bg = cv2.dilate(opening, kernel, iterations=2)
+    
+    # Determina a área de primeiro plano
+    dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
+    _, sure_fg = cv2.threshold(dist_transform, 0.7 * dist_transform.max(), 255, 0)
+    
+    # Encontrar regiões desconhecidas
+    sure_fg = np.uint8(sure_fg)
+    RegiaoDesconhecida = cv2.subtract(sure_bg, sure_fg)
+    
+    # Marcação de marcador
+    _, markers = cv2.connectedComponents(sure_fg)
+    markers = markers + 1
+    markers[RegiaoDesconhecida == 255] = 0
+    
+    # Watershed
+    markers = cv2.watershed(img, markers)
+    img[markers == -1] = [255, 0, 0]
+    
     return markers, gray
 
 def GLCM(gray):
-    # Normalizar a imagem para os níveis de cinza entre 0 e 255
+    # Normalizar a imagem para os níveis de cinza entre 254 e 255
     gray_normalized = cv2.normalize(gray, None, 254, 255, cv2.NORM_MINMAX).astype(np.uint8)
     
     # Calcular a matriz de co-ocorrência para d=1 e ângulos 0, 90, 180, 270
@@ -165,22 +198,7 @@ def main(img):
     background_features = np.array(background_feature_vector).reshape(1, -1)
 
     # Exibindo os resultados
-    '''
-    fig, axs = plt.subplots(1, 4, figsize=(20, 5))
-    axs[0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    axs[0].set_title('Imagem Original')
-    axs[0].axis('off')
 
-    axs[1].imshow(otsu_thresh, cmap='gray')
-    axs[1].set_title('Limiarização de Otsu')
-    axs[1].axis('off')
-
-    axs[2].imshow(cv2.cvtColor(segmented_img, cv2.COLOR_BGR2RGB))
-    axs[2].set_title('Segmentação Watershed')
-    axs[2].axis('off')
-
-    plt.show()
-    '''
     # Imprimir os vetores de características
     print("Vetor de Características do Objeto:")
     print("Segundo Momento Angular:", object_feature_vector[0])
@@ -189,30 +207,21 @@ def main(img):
     print("Contraste:", object_feature_vector[3])
     print("Homogeneidade:", object_feature_vector[4])
     print("Dimensão Fractal (DF):", object_feature_vector[5])
-    plot_feature_spaces(object_features, background_features)
-'''
-    print("\nVetor de Características do Fundo:")
-    print("Segundo Momento Angular:", background_feature_vector[0])
-    print("Entropia:", background_feature_vector[1])
-    print("Correlação:", background_feature_vector[2])
-    print("Contraste:", background_feature_vector[3])
-    print("Homogeneidade:", background_feature_vector[4])
-'''
-    # Plotando os espaços de características
+
     
 def mainBox(normal,media, alta):
 
-    markers, gray = OtsuWater(normal)
+    markers, gray = OtsuWaterBox(normal)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
     Normalobject_features = np.array(object_feature_vector).reshape(1, -1)
 
-    markers, gray = OtsuWater(media)
+    markers, gray = OtsuWaterBox(media)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
     Mediaobject_features = np.array(object_feature_vector).reshape(1, -1)
 
-    markers, gray = OtsuWater(alta)
+    markers, gray = OtsuWaterBox(alta)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
     altaobject_features = np.array(object_feature_vector).reshape(1, -1)
@@ -226,14 +235,14 @@ if __name__ == "__main__":
     image_path = "Normal.jpg"
     Normalimg = cv2.imread(image_path)
     print("Imagem Normal:")
-   # main(img)
+    main(Normalimg)
     image_path = "44h.jpg"
     Mediaimg = cv2.imread(image_path)
     print("Imagem 44h:")
-   # main(img)
+    main(Mediaimg)
     image_path = "96h.jpg"
     Altaimg = cv2.imread(image_path)
     print("Imagem 96h:")
-    #main(img)
+    main(Altaimg)
     mainBox(Normalimg,Mediaimg,Altaimg)
    
