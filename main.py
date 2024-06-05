@@ -101,29 +101,28 @@ def DimensaoFraquetal(Z):
             np.add.reduceat(Z, np.arange(0, Z.shape[0], k), axis=0),
             np.arange(0, Z.shape[1], k), axis=1)
 
-        # Count non-empty (0) and non-full boxes
+        
         return len(np.where((S > 0) & (S < k*k))[0])
 
-    # Transform Z into a binary array
+    # 
     Z = (Z < 255)
 
-    # Minimal dimension of image
+    # dimensão minima
     p = min(Z.shape)
 
-    # Greatest power of 2 less than or equal to p
+    # Maior potência de 2 menor ou igual a p
     n = 2**np.floor(np.log2(p))
 
-    # Extract the exponent
+    # expoente
     n = int(np.log2(n))
 
     sizes = 2**np.arange(n, 1, -1)
 
-    # Actual box counting with decreasing size
+    # Contagem de caixas com tamanho decrescente
     counts = []
     for size in sizes:
         counts.append(box_count(Z, size))
 
-    # Fit the successive log(sizes) with log(counts)
     coeffs = np.polyfit(np.log(sizes), np.log(counts), 1)
     return -coeffs[0]
 
@@ -147,7 +146,6 @@ def box_count(img, k):
         np.add.reduceat(img, np.arange(0, img.shape[0], k), axis=0),
         np.arange(0, img.shape[1], k), axis=1)
 
-    # Count non-empty (0) and non-full boxes
     return len(np.where((S > 0) & (S < k*k))[0])
 
 def plot_feature_spaces(Normal, Media, Alta):
@@ -184,19 +182,25 @@ def plot_feature_spaces(Normal, Media, Alta):
 
 def main(img):
 
-    segmented_img, otsu_thresh, markers, gray = OtsuWater(img)
+    segmented_img,otsu_thresh, markers, gray = OtsuWater(img)
     
     # Cálculo de características para objeto e fundo
     object_mask = (markers == 1).astype(np.uint8)
-    background_mask = (markers == 2).astype(np.uint8)
     
     object_feature_vector = compute_feature_vector(gray, object_mask)
-    background_feature_vector = compute_feature_vector(gray, background_mask)
     
-    # Convertendo para arrays numpy para facilidade de manipulação
-    object_features = np.array(object_feature_vector).reshape(1, -1)
-    background_features = np.array(background_feature_vector).reshape(1, -1)
+    # Mostrando segmentações
+    fig, axs = plt.subplots(1, 2, figsize=(20, 5))
+    axs[0].imshow(otsu_thresh, cmap='gray')
+    axs[1].set_title('Limiarização de Otsu')
+    axs[1].axis('off')
 
+    axs[1].imshow(cv2.cvtColor(segmented_img, cv2.COLOR_BGR2RGB))
+    axs[1].set_title('Segmentação Watershed')
+    axs[1].axis('off')
+
+    plt.show() 
+   
     # Exibindo os resultados
 
     # Imprimir os vetores de características
@@ -211,16 +215,19 @@ def main(img):
     
 def mainBox(normal,media, alta):
 
+    #Grafico imagem normal
     markers, gray = OtsuWaterBox(normal)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
     Normalobject_features = np.array(object_feature_vector).reshape(1, -1)
 
+    #Grafico imagem 44h
     markers, gray = OtsuWaterBox(media)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
     Mediaobject_features = np.array(object_feature_vector).reshape(1, -1)
 
+    #Grafico imagem 96h
     markers, gray = OtsuWaterBox(alta)
     object_mask = (markers == 1).astype(np.uint8)
     object_feature_vector = compute_feature_vector(gray, object_mask)
